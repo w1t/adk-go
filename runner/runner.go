@@ -173,7 +173,12 @@ func (r *Runner) Run(ctx context.Context, userID, sessionID string, msg *genai.C
 		ctx = runconfig.ToContext(ctx, &runconfig.RunConfig{
 			StreamingMode: runconfig.StreamingMode(cfg.StreamingMode),
 		})
-		ctx = plugininternal.ToContext(ctx, r.pluginManager)
+		pluginManager := r.pluginManager
+		if pluginManager != nil && pluginManager.HasPlugins() {
+			ctx = plugininternal.ToContext(ctx, pluginManager)
+		} else {
+			pluginManager = plugininternal.FromContext(ctx)
+		}
 
 		var artifacts agent.Artifacts
 		if r.artifactService != nil {
@@ -203,13 +208,12 @@ func (r *Runner) Run(ctx context.Context, userID, sessionID string, msg *genai.C
 			UserContent: msg,
 			RunConfig:   &cfg,
 		})
-		ctx, err = r.appendMessageToSession(ctx, storedSession, msg, cfg.SaveInputBlobsAsArtifacts, r.pluginManager, options.stateDelta)
+		ctx, err = r.appendMessageToSession(ctx, storedSession, msg, cfg.SaveInputBlobsAsArtifacts, pluginManager, options.stateDelta)
 		if err != nil {
 			yield(nil, err)
 			return
 		}
 
-		pluginManager := r.pluginManager
 		if pluginManager != nil {
 			// Defer the after run callbacks to perform global cleanup tasks or finalizing logs and metrics data.
 			// This does NOT emit any event.

@@ -286,3 +286,18 @@ func (pm *PluginManager) Close() error {
 func ToContext(ctx context.Context, cfg *PluginManager) context.Context {
 	return context.WithValue(ctx, plugincontext.PluginManagerCtxKey, cfg)
 }
+func FromContext(ctx context.Context) *PluginManager {
+	a := ctx.Value(plugincontext.PluginManagerCtxKey)
+	m, ok := a.(*PluginManager)
+	if !ok {
+		return nil
+	}
+	return m
+}
+
+func (pm *PluginManager) HasPlugins() bool {
+	if pm == nil {
+		return false
+	}
+	return len(pm.plugins) > 0
+}
